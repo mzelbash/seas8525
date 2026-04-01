@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MNIST Autoencoder Explorer - Class 1 | SEAS 8525</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});"></script>
+<style>
+:root{
+  --bg:#F5F7FA;--card:#fff;--navy:#1A3A5C;--blue:#0077B6;--blue-lt:#E8F4FD;
+  --teal:#00838F;--teal-lt:#E0F6F8;--green:#00695C;--green-lt:#E0F2F1;
+  --orange:#E65100;--orange-lt:#FFF3E0;--red:#C62828;--red-lt:#FFEBEE;
+  --purple:#6A1B9A;--purple-lt:#F3E5F5;--text:#1A2A3A;--text-s:#546E7A;
+  --border:#CFD8DC;--shadow:0 2px 12px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:14px;}
+header{background:var(--navy);padding:16px 32px;}
+header h1{font-size:1.3rem;color:#fff;}
+header p{font-size:.82rem;color:#90B8D8;margin-top:3px;}
+.badge{background:var(--blue);color:#fff;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:4px;margin-left:8px;}
+main{max-width:1200px;margin:0 auto;padding:20px;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--card);border-radius:10px 10px 0 0;box-shadow:var(--shadow);padding:10px 12px 0;border-bottom:2px solid var(--border);}
+.tab{padding:8px 18px;border-radius:7px 7px 0 0;font-size:.82rem;font-weight:700;cursor:pointer;
+  color:var(--text-s);background:transparent;border:none;border-bottom:3px solid transparent;transition:all .18s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-lt);}
+.tab:hover:not(.active){background:#F0F6FF;color:var(--navy);}
+
+.tab-content{background:var(--card);border-radius:0 0 12px 12px;box-shadow:var(--shadow);padding:24px;min-height:500px;display:none;}
+.tab-content.active{display:block;}
+
+/* Cards */
+.card{background:var(--bg);border-radius:9px;padding:14px 18px;margin-bottom:14px;}
+.card h4{font-size:.82rem;font-weight:700;margin-bottom:6px;}
+.card.blue{border-left:4px solid var(--blue);} .card.blue h4{color:var(--blue);}
+.card.green{border-left:4px solid var(--green);} .card.green h4{color:var(--green);}
+.card.teal{border-left:4px solid var(--teal);} .card.teal h4{color:var(--teal);}
+.card.orange{border-left:4px solid var(--orange);} .card.orange h4{color:var(--orange);}
+.card.red{border-left:4px solid var(--red);} .card.red h4{color:var(--red);}
+.card.purple{border-left:4px solid var(--purple);} .card.purple h4{color:var(--purple);}
+.card.navy{border-left:4px solid var(--navy);} .card.navy h4{color:var(--navy);}
+.card p,.card li{font-size:.85rem;color:var(--text-s);line-height:1.65;}
+.card ul{padding-left:16px;}
+
+/* Grid layouts */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:700px){.g2,.g3{grid-template-columns:1fr;}}
+
+/* Math box */
+.mbox{background:var(--navy);color:#fff;border-radius:8px;padding:12px 18px;text-align:center;margin:10px 0;}
+.mbox .katex,.mbox .katex-display{color:#fff;} .mbox .katex-display{margin:0;}
+.mbox-b{background:var(--blue-lt);border:1.5px solid var(--blue);border-radius:7px;padding:10px 16px;margin:8px 0;}
+.mbox-g{background:var(--green-lt);border:1.5px solid var(--green);border-radius:7px;padding:10px 16px;margin:8px 0;}
+
+/* Section title */
+.stitle{font-size:1rem;font-weight:700;color:var(--navy);margin:0 0 12px;}
+
+/* ── Code cells ── */
+.code-cell{background:#1E2A38;border-radius:8px;padding:14px 18px;margin:10px 0;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.8;overflow-x:auto;position:relative;}
+.code-cell code{color:#E8EAF6;}
+.kw{color:#82B1FF;} .cls{color:#FFD54F;} .fn{color:#80DEEA;} .str{color:#C3E88D;}
+.cm{color:#546E7A;font-style:italic;} .num{color:#F48FB1;} .op{color:#FF8A80;}
+.code-line{display:block;cursor:pointer;border-radius:3px;padding:0 4px;margin:0 -4px;transition:background .15s;white-space:pre;}
+.code-line:hover{background:rgba(255,255,255,.07);}
+.code-line.hl{background:rgba(130,177,255,.18);}
+/* Code guide cells: preserve newlines and spaces */
+.code-cell code.guide{display:block;white-space:pre-wrap;}
+
+/* Tooltip for code lines */
+.code-tip{position:fixed;background:#1A3A5C;color:#fff;padding:8px 13px;border-radius:7px;font-size:.78rem;
+  pointer-events:none;display:none;z-index:999;max-width:280px;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,.3);font-family:'Segoe UI',sans-serif;}
+
+/* ── Forward pass stepper ── */
+.step-nav{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.step-btn{padding:7px 18px;border-radius:7px;font-weight:700;font-size:.82rem;cursor:pointer;border:2px solid var(--blue);
+  color:var(--blue);background:transparent;transition:all .18s;}
+.step-btn:hover,.step-btn.active{background:var(--blue);color:#fff;}
+.step-btn:disabled{opacity:.35;cursor:default;}
+.step-indicator{font-size:.8rem;color:var(--text-s);}
+.step-dots{display:flex;gap:5px;align-items:center;}
+.step-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:background .2s;}
+.step-dot.done{background:var(--blue);}
+
+/* Layer pipeline visual */
+.pipeline{display:flex;align-items:center;gap:0;margin:12px 0;flex-wrap:wrap;}
+.pipe-box{padding:10px 14px;border-radius:7px;font-size:.8rem;font-weight:700;text-align:center;min-width:80px;transition:all .3s;}
+.pipe-box.active{transform:scale(1.08);box-shadow:0 0 0 3px var(--blue);}
+.pipe-arrow{color:var(--text-s);font-size:1.2rem;padding:0 4px;flex-shrink:0;}
+
+/* Bar chart for activations */
+.bar-chart{display:flex;align-items:flex-end;gap:1.5px;height:60px;padding:4px;background:var(--bg);border-radius:6px;}
+.bar{border-radius:2px 2px 0 0;min-width:2px;transition:height .4s,background .4s;}
+
+/* Pixel grid */
+.px-grid{display:inline-grid;gap:1px;border:1px solid var(--border);border-radius:4px;background:var(--border);}
+.px-cell{background:#fff;}
+
+/* Latent space SVG wrapper */
+#latent-svg-wrap{text-align:center;}
+
+/* Training chart */
+#train-chart{background:#fff;border:1px solid var(--border);border-radius:8px;}
+
+/* Step content */
+.step-panel{display:none;} .step-panel.active{display:block;}
+.step-title{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:10px;}
+.step-tag{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:700;background:var(--blue-lt);color:var(--blue);margin-bottom:8px;}
+
+/* Collapsible code cells */
+.cell-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 14px;
+  background:#1E2A38;border-radius:8px 8px 0 0;margin-top:10px;}
+.cell-toggle:hover{background:#253444;}
+.cell-toggle .cell-title{font-size:.8rem;font-weight:700;color:#82B1FF;}
+.cell-toggle .chevron{color:#546E7A;font-size:.8rem;transition:transform .2s;}
+.cell-toggle.open .chevron{transform:rotate(180deg);}
+.cell-body{display:none;background:#1E2A38;border-radius:0 0 8px 8px;overflow:hidden;}
+.cell-body.open{display:block;}
+.cell-explain{background:var(--blue-lt);border-radius:0 0 8px 8px;padding:12px 16px;font-size:.83rem;color:var(--text-s);line-height:1.65;}
+.cell-explain strong{color:var(--text);}
+</style>
+</head>
+<body>
+<header>
+  <h1>MNIST Autoencoder - Interactive Explorer <span class="badge">Class 1</span></h1>
+  <p>SEAS 8525 - Understand Class_1_LatentSpace_PyTorch.ipynb through visual interaction. (Dr. Elbasheer)</p>
+</header>
+<main>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('arch')">1. Architecture</button>
+  <button class="tab" onclick="showTab('fwd')">2. Forward Pass</button>
+  <button class="tab" onclick="showTab('train')">3. Training Loop</button>
+  <button class="tab" onclick="showTab('latent')">4. Latent Space</button>
+  <button class="tab" onclick="showTab('code')">5. Original Code Guide (Buggy)</button>
+  <button class="tab" onclick="showTab('opt')">6. Optimized Code</button>
+</div>
+
+<!-- ═══════ TAB 1: ARCHITECTURE ═══════ -->
+<div id="tab-arch" class="tab-content active">
+  <p class="stitle">Autoencoder Architecture - 784 → 128 → 64 → 128 → 784</p>
+
+  <svg viewBox="0 0 860 200" style="width:100%;max-width:860px;display:block;margin:0 auto 18px;" id="arch-svg">
+    <!-- Layer boxes -->
+    <!-- Input -->
+    <rect x="10" y="30" width="80" height="140" rx="8" fill="#E8F4FD" stroke="#0077B6" stroke-width="1.5" id="ab-input" style="cursor:pointer" onclick="archClick('input')"/>
+    <text x="50" y="55" text-anchor="middle" font-size="9" font-weight="700" fill="#0D47A1">INPUT</text>
+    <text x="50" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#0077B6">784</text>
+    <text x="50" y="120" text-anchor="middle" font-size="8" fill="#546E7A">28 x 28</text>
+    <text x="50" y="133" text-anchor="middle" font-size="8" fill="#546E7A">pixels</text>
+    <!-- Arrow -->
+    <text x="100" y="105" text-anchor="middle" font-size="14" fill="#90A4AE">&#x203A;</text>
+    <!-- ENC L1 -->
+    <rect x="108" y="50" width="70" height="100" rx="7" fill="#BBDEFB" stroke="#0077B6" stroke-width="1.5" style="cursor:pointer" onclick="archClick('enc1')"/>
+    <text x="143" y="70" text-anchor="middle" font-size="9" font-weight="700" fill="#0D47A1">Linear</text>
+    <text x="143" y="83" text-anchor="middle" font-size="9" fill="#1565C0">784&#x2192;128</text>
+    <text x="143" y="108" text-anchor="middle" font-size="13" font-weight="700" fill="#0077B6">128</text>
+    <text x="143" y="123" text-anchor="middle" font-size="8" fill="#546E7A">+ ReLU</text>
+    <!-- Arrow -->
+    <text x="185" y="105" text-anchor="middle" font-size="14" fill="#90A4AE">&#x203A;</text>
+    <!-- ENC L2 -->
+    <rect x="192" y="68" width="70" height="64" rx="7" fill="#90CAF9" stroke="#0077B6" stroke-width="1.5" style="cursor:pointer" onclick="archClick('enc2')"/>
+    <text x="227" y="84" text-anchor="middle" font-size="9" font-weight="700" fill="#0D47A1">Linear</text>
+    <text x="227" y="96" text-anchor="middle" font-size="9" fill="#1565C0">128&#x2192;64</text>
+    <text x="227" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#0D47A1">64</text>
+    <!-- Arrow -->
+    <text x="268" y="105" text-anchor="middle" font-size="14" fill="#90A4AE">&#x203A;</text>
+    <!-- LATENT -->
+    <rect x="276" y="78" width="80" height="44" rx="8" fill="#1A3A5C" stroke="#0077B6" stroke-width="2.5" style="cursor:pointer" onclick="archClick('latent')"/>
+    <text x="316" y="96" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">z = 64</text>
+    <text x="316" y="109" text-anchor="middle" font-size="8" fill="#90B8D8">BOTTLENECK</text>
+    <!-- ENCODE label -->
+    <rect x="108" y="160" width="154" height="18" rx="4" fill="none"/>
+    <text x="185" y="172" text-anchor="middle" font-size="9" font-weight="700" fill="#0077B6">ENCODER  f&#x03D5;</text>
+    <!-- Arrow -->
+    <text x="362" y="105" text-anchor="middle" font-size="14" fill="#90A4AE">&#x203A;</text>
+    <!-- DEC L1 -->
+    <rect x="370" y="68" width="70" height="64" rx="7" fill="#A5D6A7" stroke="#00695C" stroke-width="1.5" style="cursor:pointer" onclick="archClick('dec1')"/>
+    <text x="405" y="84" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">Linear</text>
+    <text x="405" y="96" text-anchor="middle" font-size="9" fill="#2E7D32">64&#x2192;128</text>
+    <text x="405" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#1B5E20">128</text>
+    <!-- Arrow -->
+    <text x="447" y="105" text-anchor="middle" font-size="14" fill="#90A4AE">&#x203A;</text>
+    <!-- DEC L2 -->
+    <rect x="454" y="50" width="70" height="100" rx="7" fill="#C8E6C9" stroke="#00695C" stroke-width="1.5" style="cursor:pointer" onclick="archClick('dec2')"/>
+    <text x="489" y="70" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">Linear</text>
+    <text x="489" y="83" text-anchor="middle" font-size="9" fill="#2E7D32">128&#x2192;784</text>
+    <text x="489" y="108" text-anchor="middle" font-size="13" font-weight="700" fill="#1B5E20">784</text>
+    <text x="489" y="123" text-anchor="middle" font-size="8" fill="#546E7A">+ Sigmoid</text>
+    <!-- Arrow -->
+    <text x="531" y="105" text-anchor="middle" font-size="14" fill="#90A4AE">&#x203A;</text>
+    <!-- Output -->
+    <rect x="538" y="30" width="80" height="140" rx="8" fill="#E0F2F1" stroke="#00695C" stroke-width="1.5" style="cursor:pointer" onclick="archClick('output')"/>
+    <text x="578" y="55" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">OUTPUT</text>
+    <text x="578" y="105" text-anchor="middle" font-size="13" font-weight="700" fill="#00695C">784</text>
+    <text x="578" y="120" text-anchor="middle" font-size="8" fill="#546E7A">28 x 28</text>
+    <text x="578" y="133" text-anchor="middle" font-size="8" fill="#546E7A">reconstructed</text>
+    <!-- DECODE label -->
+    <rect x="370" y="160" width="154" height="18" rx="4" fill="none"/>
+    <text x="447" y="172" text-anchor="middle" font-size="9" font-weight="700" fill="#00695C">DECODER  g&#x03B8;</text>
+    <!-- Loss arrow -->
+    <line x1="90" y1="175" x2="538" y2="175" stroke="#C62828" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="314" y="190" text-anchor="middle" font-size="9" font-weight="700" fill="#C62828">Loss = MSE( x , x&#x0302; ) = ||x - x&#x0302;||&#xB2;  (backprop trains both f&#x03D5; and g&#x03B8;)</text>
+    <!-- Stats panel -->
+    <rect x="650" y="20" width="200" height="160" rx="8" fill="#F5F7FA" stroke="#CFD8DC" stroke-width="1"/>
+    <text x="750" y="42" text-anchor="middle" font-size="9" font-weight="700" fill="#1A3A5C">Model Stats</text>
+    <text x="665" y="65" font-size="8.5" fill="#546E7A">Input dim:</text>  <text x="840" y="65" text-anchor="end" font-size="8.5" fill="#0077B6" font-weight="700">784</text>
+    <text x="665" y="82" font-size="8.5" fill="#546E7A">Hidden 1:</text>   <text x="840" y="82" text-anchor="end" font-size="8.5" fill="#0077B6" font-weight="700">128</text>
+    <text x="665" y="99" font-size="8.5" fill="#546E7A">Latent (z):</text> <text x="840" y="99" text-anchor="end" font-size="8.5" fill="#1A3A5C" font-weight="700">64</text>
+    <text x="665" y="116" font-size="8.5" fill="#546E7A">Compression:</text><text x="840" y="116" text-anchor="end" font-size="8.5" fill="#C62828" font-weight="700">12.25x</text>
+    <text x="665" y="133" font-size="8.5" fill="#546E7A">Enc params:</text> <text x="840" y="133" text-anchor="end" font-size="8.5" fill="#546E7A">108,800</text>
+    <text x="665" y="150" font-size="8.5" fill="#546E7A">Dec params:</text> <text x="840" y="150" text-anchor="end" font-size="8.5" fill="#546E7A">108,800</text>
+    <text x="665" y="167" font-size="8.5" fill="#546E7A">Total params:</text><text x="840" y="167" text-anchor="end" font-size="8.5" fill="#1A3A5C" font-weight="700">217,600</text>
+  </svg>
+
+  <!-- Click detail panel -->
+  <div id="arch-detail" style="background:var(--blue-lt);border:1.5px solid var(--blue);border-radius:9px;padding:14px 18px;margin-bottom:16px;font-size:.85rem;line-height:1.7;">
+    <strong>Click any box in the diagram above for details.</strong> Each component of the Autoencoder is explained individually.
+  </div>
+
+  <div class="g3">
+    <div class="card blue">
+      <h4>Encoder $f_\phi$ - Compress</h4>
+      <ul>
+        <li>Flattens 28x28 image to 784-dim vector</li>
+        <li>Linear(784, 128) + ReLU</li>
+        <li>Linear(128, 64) + ReLU</li>
+        <li>Learns which features are most useful</li>
+      </ul>
+    </div>
+    <div class="card navy">
+      <h4>Bottleneck $z$ - Latent Code</h4>
+      <ul>
+        <li>Only 64 numbers to represent the image</li>
+        <li>12.25x compression from 784</li>
+        <li>Forces the model to discard noise</li>
+        <li>Each dimension encodes a meaningful feature</li>
+      </ul>
+    </div>
+    <div class="card green">
+      <h4>Decoder $g_\theta$ - Reconstruct</h4>
+      <ul>
+        <li>Linear(64, 128) + ReLU</li>
+        <li>Linear(128, 784) + Sigmoid</li>
+        <li>Sigmoid maps values to [0, 1] (pixel range)</li>
+        <li>Mirrors the encoder structure</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-top:4px;">
+    <div class="card orange">
+      <h4>Why ReLU in hidden layers?</h4>
+      <p>$\text{ReLU}(z) = \max(0, z)$ - introduces non-linearity, allowing the network to learn complex, non-linear mappings. Without it, stacking linear layers is equivalent to a single linear layer.</p>
+    </div>
+    <div class="card red">
+      <h4>Why Sigmoid in the output layer?</h4>
+      <p>$\sigma(z) = \frac{1}{1+e^{-z}}$ maps any real number to $(0,1)$. Since MNIST pixel values are in $[0,1]$, Sigmoid ensures the reconstruction is a valid image. <strong>Important:</strong> if you normalize inputs to $[-1,1]$, Sigmoid becomes a mismatch - the loss will not decrease well.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════ TAB 2: FORWARD PASS ═══════ -->
+<div id="tab-fwd" class="tab-content">
+  <p class="stitle">Step Through a Forward Pass</p>
+  <p style="font-size:.84rem;color:var(--text-s);margin-bottom:14px;">Watch a digit "7" travel through the Autoencoder layer by layer. Each step shows the tensor shape, what happens mathematically, and an activation visualization.</p>
+
+  <div class="step-nav">
+    <button class="step-btn" onclick="prevStep()" id="btn-prev" disabled>&#8592; Prev</button>
+    <button class="step-btn" onclick="nextStep()" id="btn-next">Next &#8594;</button>
+    <span class="step-indicator" id="step-ind">Step 1 / 7</span>
+    <div class="step-dots" id="step-dots"></div>
+  </div>
+
+  <!-- Pipeline bar (always visible, highlights current) -->
+  <div class="pipeline" id="fwd-pipeline" style="margin-bottom:16px;gap:3px;flex-wrap:nowrap;overflow-x:auto;padding:6px;">
+    <div class="pipe-box" id="pb0" style="background:var(--blue-lt);color:var(--blue);">Input<br><small>784</small></div>
+    <div class="pipe-arrow">&#x203A;</div>
+    <div class="pipe-box" id="pb1" style="background:#EEF3F8;color:var(--text-s);">Lin<br><small>128</small></div>
+    <div class="pipe-arrow">&#x203A;</div>
+    <div class="pipe-box" id="pb2" style="background:#EEF3F8;color:var(--text-s);">ReLU<br><small>128</small></div>
+    <div class="pipe-arrow">&#x203A;</div>
+    <div class="pipe-box" id="pb3" style="background:#EEF3F8;color:var(--text-s);">Lin<br><small>64</small></div>
+    <div class="pipe-arrow">&#x203A;</div>
+    <div class="pipe-box" id="pb4" style="background:#EEF3F8;color:var(--text-s);">ReLU<br><small>64 = z</small></div>
+    <div class="pipe-arrow">&#x203A;</div>
+    <div class="pipe-box" id="pb5" style="background:#EEF3F8;color:var(--text-s);">Decode<br><small>784</small></div>
+    <div class="pipe-arrow">&#x203A;</div>
+    <div class="pipe-box" id="pb6" style="background:#EEF3F8;color:var(--text-s);">Loss<br><small>MSE</small></div>
+  </div>
+
+  <!-- Steps -->
+  <div id="step-0" class="step-panel active">
+    <div class="g2">
+      <div>
+        <span class="step-tag">Step 1 - Input</span>
+        <div class="step-title">MNIST digit loaded and flattened to 784 values</div>
+        <div class="card navy">
+          <h4>What the code does</h4>
+          <p><code style="background:#1E2A38;color:#80DEEA;padding:1px 5px;border-radius:3px;">img.view(-1, 28*28)</code><br>
+          The 28x28 image tensor is reshaped (flattened) into a 1D vector of 784 values. Each value is a pixel intensity in $[-1, 1]$ after normalization.</p>
+        </div>
+        <div class="mbox-b">$$x \in \mathbb{R}^{784}, \quad x_i \in [-1,\, 1]$$</div>
+        <div class="card orange">
+          <h4>Normalization: why $[-1, 1]$?</h4>
+          <p>The transform applies: $x_{\text{norm}} = \frac{x - 0.5}{0.5}$. Original pixels are in $[0,1]$, so the result is in $[-1,1]$. This centres the data around 0, helping gradient flow.</p>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <p style="font-size:.8rem;color:var(--text-s);margin-bottom:8px;">Example digit "7" as 28x28 pixel grid</p>
+        <canvas id="digit-canvas" width="140" height="140" style="border:1px solid var(--border);border-radius:6px;image-rendering:pixelated;"></canvas>
+        <p style="font-size:.75rem;color:var(--text-s);margin-top:6px;">Pixel value range after normalization: $[-1, 1]$</p>
+        <div id="px-sample" style="font-family:monospace;font-size:.72rem;color:var(--text-s);margin-top:8px;background:var(--bg);border-radius:5px;padding:6px;text-align:left;line-height:1.8;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-1" class="step-panel">
+    <div class="g2">
+      <div>
+        <span class="step-tag">Step 2 - Linear(784, 128) + ReLU</span>
+        <div class="step-title">First encoder layer: weighted sum across 784 inputs</div>
+        <div class="card blue">
+          <h4>Linear transformation</h4>
+          <p>Each of the 128 output neurons computes a weighted sum of all 784 inputs plus a bias:<br>$h_j = \sum_{i=1}^{784} W_{ji} x_i + b_j$</p>
+        </div>
+        <div class="mbox-b">$$h = W_{(128 \times 784)}\, x + b \;\in\; \mathbb{R}^{128}$$</div>
+        <div class="card teal">
+          <h4>ReLU activation</h4>
+          <p>$\text{ReLU}(h_j) = \max(0, h_j)$ - all negative values become 0. Shown in the bar chart: red bars are zeroed out.</p>
+        </div>
+        <div class="card navy">
+          <h4>Parameter count for this layer</h4>
+          <p>Weights: $128 \times 784 = 100{,}352$ &nbsp;|&nbsp; Biases: $128$ &nbsp;|&nbsp; Total: $100{,}480$</p>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:.8rem;color:var(--text-s);margin-bottom:6px;">128 activations after Linear + ReLU (red = zeroed by ReLU)</p>
+        <div id="bars-enc1" class="bar-chart" style="height:80px;"></div>
+        <p style="font-size:.75rem;color:var(--text-s);margin-top:4px;">Each bar = one of the 128 hidden units</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-2" class="step-panel">
+    <div class="g2">
+      <div>
+        <span class="step-tag">Step 3 - Linear(128, 64) + ReLU</span>
+        <div class="step-title">Second encoder layer: compress to 64-dimensional latent code</div>
+        <div class="card blue">
+          <h4>The bottleneck</h4>
+          <p>$z = \text{ReLU}(W_{(64\times128)}\,h_1 + b)$ - the 128 values are compressed into just 64 numbers. This is the latent code $z$.</p>
+        </div>
+        <div class="mbox-b">$$z = \text{ReLU}(W\,h_1 + b) \;\in\; \mathbb{R}^{64}$$</div>
+        <div class="card orange">
+          <h4>What does $z$ represent?</h4>
+          <p>$z$ is a compressed description of the input image. It has 12.25x fewer dimensions than the input. The model must learn to store the most important features here - stroke angle, height, curvature of the "7".</p>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:.8rem;color:var(--text-s);margin-bottom:6px;">64-dimensional latent code $z$ (the bottleneck)</p>
+        <div id="bars-latent" class="bar-chart" style="height:80px;"></div>
+        <p style="font-size:.75rem;color:var(--text-s);margin-top:4px;">Each bar = one dimension of $z$</p>
+        <div style="margin-top:10px;background:var(--navy);border-radius:7px;padding:10px 14px;font-size:.82rem;color:#fff;">
+          <span style="font-weight:700;color:#FFD54F;">Compressed:</span> 784 numbers &rarr; 64 numbers<br>
+          <span style="color:#90B8D8;">Information discarded: ~91.8%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-3" class="step-panel">
+    <div class="g2">
+      <div>
+        <span class="step-tag">Step 4 - Decoder: Linear(64,128) + ReLU then Linear(128,784) + Sigmoid</span>
+        <div class="step-title">Decoder expands $z$ back to 784 pixel values</div>
+        <div class="card green">
+          <h4>Decoder mirrors the encoder</h4>
+          <p>$h_3 = \text{ReLU}(W_{(128\times64)}\,z + b)$ then $\hat{x} = \sigma(W_{(784\times128)}\,h_3 + b)$</p>
+        </div>
+        <div class="mbox-g">$$\hat{x} = \sigma(W_{\text{dec2}}\,(\text{ReLU}(W_{\text{dec1}}\, z))) \;\in\; (0,1)^{784}$$</div>
+        <div class="card teal">
+          <h4>Sigmoid output</h4>
+          <p>Sigmoid ensures each reconstructed pixel is in $(0,1)$. The model outputs a probability-like value for each pixel's intensity. Reshape to 28x28 to get the reconstructed image.</p>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div style="display:flex;gap:20px;justify-content:center;align-items:flex-start;flex-wrap:wrap;">
+          <div>
+            <p style="font-size:.78rem;color:var(--text-s);margin-bottom:4px;">Original $x$</p>
+            <canvas id="orig-canvas" width="112" height="112" style="border:1px solid var(--border);border-radius:5px;image-rendering:pixelated;"></canvas>
+          </div>
+          <div>
+            <p style="font-size:.78rem;color:var(--text-s);margin-bottom:4px;">Reconstructed $\hat{x}$</p>
+            <canvas id="recon-canvas" width="112" height="112" style="border:1px solid var(--border);border-radius:5px;image-rendering:pixelated;"></canvas>
+          </div>
+        </div>
+        <p style="font-size:.75rem;color:var(--text-s);margin-top:8px;">Early training: reconstruction is blurry. Loss guides improvement.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-4" class="step-panel">
+    <div class="g2">
+      <div>
+        <span class="step-tag">Step 5 - MSE Loss</span>
+        <div class="step-title">Compute reconstruction loss pixel by pixel</div>
+        <div class="mbox">$$\mathcal{L} = \frac{1}{784}\sum_{i=1}^{784}(x_i - \hat{x}_i)^2$$</div>
+        <div class="card red">
+          <h4>What MSE penalises</h4>
+          <p>Each pixel's predicted value $\hat{x}_i$ is compared to the original $x_i$. The squared difference penalises large errors more heavily. The mean is taken over all 784 pixels and all samples in the batch.</p>
+        </div>
+        <div class="card orange">
+          <h4>The normalization bug in this notebook</h4>
+          <p>The transform normalises pixels to $[-1,1]$, but the Sigmoid output is in $(0,1)$. So the loss is trying to match values in $[-1,1]$ using outputs bounded at $[0,1]$ - the decoder can never fully minimise the loss on the negative half. That is why the loss in the notebook stays around $0.92$ and barely changes. Fix: either remove the normalisation transform, or change the output layer to <code>nn.Tanh()</code>.</p>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:.8rem;color:var(--text-s);margin-bottom:8px;">Pixel-wise error heatmap: bright = large error</p>
+        <canvas id="error-canvas" width="140" height="140" style="border:1px solid var(--border);border-radius:6px;image-rendering:pixelated;"></canvas>
+        <div id="loss-readout" style="margin-top:10px;background:var(--red-lt);border-left:4px solid var(--red);border-radius:6px;padding:10px 14px;font-size:.85rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-5" class="step-panel">
+    <div class="g2">
+      <div>
+        <span class="step-tag">Step 6 - Backpropagation</span>
+        <div class="step-title">Gradients flow back through decoder, then encoder</div>
+        <div class="mbox">$$\frac{\partial \mathcal{L}}{\partial W} = \frac{\partial \mathcal{L}}{\partial \hat{x}} \cdot \frac{\partial \hat{x}}{\partial W}$$</div>
+        <div class="card purple">
+          <h4>Chain rule through the network</h4>
+          <p>PyTorch's autograd computes gradients automatically. The gradient of the loss flows backwards: through the Sigmoid output, then through each Linear layer of the decoder, then back through the encoder all the way to the first weights.</p>
+        </div>
+        <div class="card blue">
+          <h4>Adam optimizer update</h4>
+          <p>$W \leftarrow W - \alpha \cdot \hat{m} / (\sqrt{\hat{v}} + \epsilon)$ where $\hat{m}$ and $\hat{v}$ are bias-corrected first and second moment estimates. LR = $10^{-3}$ in this notebook.</p>
+        </div>
+        <div class="card navy">
+          <h4>Mixed precision (AMP)</h4>
+          <p><code>GradScaler</code> and <code>autocast</code> run the forward pass in FP16 (half precision) for speed, then scale gradients back to FP32 for the update. 2x speedup on GPU with minimal accuracy loss.</p>
+        </div>
+      </div>
+      <div>
+        <svg viewBox="0 0 260 220" style="width:100%;max-width:280px;">
+          <!-- Gradient flow arrows (right to left) -->
+          <rect x="10"  y="90" width="50" height="40" rx="6" fill="#E8F4FD" stroke="#0077B6" stroke-width="1.5"/>
+          <text x="35" y="108" text-anchor="middle" font-size="8" font-weight="700" fill="#0077B6">Encoder</text>
+          <text x="35" y="120" text-anchor="middle" font-size="7.5" fill="#546E7A">f&#x03D5;</text>
+          <rect x="100" y="90" width="60" height="40" rx="6" fill="#1A3A5C" stroke="#0077B6" stroke-width="2"/>
+          <text x="130" y="108" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">z = 64</text>
+          <text x="130" y="120" text-anchor="middle" font-size="7" fill="#90B8D8">bottleneck</text>
+          <rect x="200" y="90" width="50" height="40" rx="6" fill="#E0F2F1" stroke="#00695C" stroke-width="1.5"/>
+          <text x="225" y="108" text-anchor="middle" font-size="8" font-weight="700" fill="#00695C">Decoder</text>
+          <text x="225" y="120" text-anchor="middle" font-size="7.5" fill="#546E7A">g&#x03B8;</text>
+          <!-- Forward arrows -->
+          <line x1="60" y1="110" x2="98" y2="110" stroke="#0077B6" stroke-width="1.5" marker-end="url(#arf)"/>
+          <line x1="160" y1="110" x2="198" y2="110" stroke="#0077B6" stroke-width="1.5" marker-end="url(#arf)"/>
+          <text x="130" y="80" text-anchor="middle" font-size="8" fill="#0077B6">Forward pass</text>
+          <!-- Backward arrows (red, below) -->
+          <line x1="198" y1="145" x2="162" y2="145" stroke="#C62828" stroke-width="1.5" marker-end="url(#arb)"/>
+          <line x1="98"  y1="145" x2="62"  y2="145" stroke="#C62828" stroke-width="1.5" marker-end="url(#arb)"/>
+          <text x="130" y="170" text-anchor="middle" font-size="8" fill="#C62828">Backward pass (gradients)</text>
+          <!-- Loss box -->
+          <rect x="195" y="150" width="60" height="28" rx="5" fill="#FFEBEE" stroke="#C62828" stroke-width="1.2"/>
+          <text x="225" y="162" text-anchor="middle" font-size="8" font-weight="700" fill="#C62828">Loss</text>
+          <text x="225" y="173" text-anchor="middle" font-size="7.5" fill="#B71C1C">MSE</text>
+          <line x1="225" y1="132" x2="225" y2="150" stroke="#C62828" stroke-width="1.2"/>
+          <defs>
+            <marker id="arf" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#0077B6"/></marker>
+            <marker id="arb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0 0,7 3.5,0 7" fill="#C62828"/></marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-6" class="step-panel">
+    <span class="step-tag">Step 7 - Full Training Loop</span>
+    <div class="step-title">Repeat for every batch, every epoch</div>
+    <div class="g2">
+      <div>
+        <div class="card navy">
+          <h4>One training iteration</h4>
+          <ul>
+            <li><strong>Sample batch</strong> of 64 images from 60,000 MNIST training samples</li>
+            <li><strong>Forward pass</strong>: $\hat{x} = g_\theta(f_\phi(x))$</li>
+            <li><strong>Compute loss</strong>: $\mathcal{L} = \text{MSE}(x, \hat{x})$</li>
+            <li><strong>Zero gradients</strong>: <code>optimizer.zero_grad()</code></li>
+            <li><strong>Backward pass</strong>: <code>loss.backward()</code></li>
+            <li><strong>Update weights</strong>: <code>optimizer.step()</code></li>
+          </ul>
+        </div>
+        <div class="card teal">
+          <h4>How many iterations per epoch?</h4>
+          <p>60,000 images / batch size 64 = <strong>938 gradient updates per epoch</strong>. The notebook runs 10 epochs = 9,380 total weight updates.</p>
+        </div>
+      </div>
+      <div>
+        <div class="card orange">
+          <h4>Why does loss barely decrease?</h4>
+          <p>The normalization bug: Sigmoid output is in $(0,1)$ but targets are in $[-1,1]$. The loss floor is dominated by the mismatch on negative pixel values. The model quickly learns the positive half but gets stuck on the negative half.</p>
+          <p style="margin-top:6px;"><strong>Fix:</strong> Use <code>transforms.ToTensor()</code> only (no Normalize), or use <code>nn.Tanh()</code> as output activation.</p>
+        </div>
+        <div class="mbox-b" style="font-size:.82rem;text-align:left;">
+          Actual losses from notebook:<br>
+          Epoch 1: 0.9227 &nbsp; Epoch 6: 0.9212<br>
+          Epoch 2: 0.9270 &nbsp; Epoch 7: 0.9218<br>
+          Epoch 5: 0.9268 &nbsp; Epoch 10: 0.9239
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════ TAB 3: TRAINING ═══════ -->
+<div id="tab-train" class="tab-content">
+  <p class="stitle">Training Dynamics</p>
+  <div class="g2">
+    <div>
+      <p style="font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Loss curve (10 epochs, batch=64, lr=1e-3, Adam)</p>
+      <canvas id="train-chart" width="420" height="200"></canvas>
+      <p style="font-size:.78rem;color:var(--text-s);margin-top:6px;">Note: Loss stays near 0.92 due to Sigmoid/normalization mismatch (see explanation below).</p>
+    </div>
+    <div>
+      <div class="card red">
+        <h4>The normalization mismatch - a common pitfall</h4>
+        <ul>
+          <li><code>transforms.Normalize((0.5,),(0.5,))</code> maps pixels from $[0,1]$ to $[-1,1]$</li>
+          <li>But <code>nn.Sigmoid()</code> output is always in $(0,1)$</li>
+          <li>So MSE target is in $[-1,1]$ and prediction is in $(0,1)$ - they can never fully agree</li>
+          <li>Minimum achievable MSE with this setup $\approx 0.25$ even with a perfect model</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h4>How to fix it (two options)</h4>
+        <p><strong>Option A:</strong> Remove Normalize, keep Sigmoid. Pixels stay in $[0,1]$, Sigmoid output matches.<br>
+        <strong>Option B:</strong> Keep Normalize, replace Sigmoid with <code>nn.Tanh()</code>. Tanh output is $(-1,1)$, matches the normalized target.</p>
+      </div>
+      <div class="card navy">
+        <h4>Batch size effect</h4>
+        <p>Batch size = 64. Each gradient update averages the loss over 64 images, giving a smoother but noisier gradient estimate than using the full dataset. Larger batches = more stable but slower to compute.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;">
+    <p class="stitle">Training Loop Code - Annotated</p>
+    <div class="code-cell" id="training-code">
+      <code>
+<span class="code-line" data-tip="num_epochs=10: The full dataset is passed through the network 10 times."><span class="kw">num_epochs</span> = <span class="num">10</span></span>
+<span class="code-line" data-tip="GradScaler handles FP16/FP32 gradient scaling for Automatic Mixed Precision (AMP). Deprecated: use torch.amp.GradScaler('cuda') in newer PyTorch."><span class="fn">scaler</span> = <span class="cls">GradScaler</span>()</span>
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(num_epochs):
+<span class="code-line" data-tip="Iterates over mini-batches of 64 images from the DataLoader. Each iteration = one gradient update.">  <span class="kw">for</span> data <span class="kw">in</span> train_loader:</span>
+<span class="code-line" data-tip="Unpacks the batch. 'img' is the image tensor; '_' discards the label (AE is unsupervised - it doesn't need the class label).">    img, _ = data</span>
+<span class="code-line" data-tip="Moves the batch to GPU if available. .to(device) is a no-op on CPU.">    img = img.<span class="fn">to</span>(device)</span>
+<span class="code-line" data-tip="autocast runs forward pass in FP16 (half-precision) for speed. The computation graph is still built for backprop.">    <span class="kw">with</span> <span class="fn">autocast</span>():</span>
+<span class="code-line" data-tip="Runs the full forward pass: flatten -> encoder -> z -> decoder -> sigmoid -> reshape. Returns reconstructed images of shape (64, 1, 28, 28).">      output = model(img)</span>
+<span class="code-line" data-tip="MSELoss computes mean((output_i - img_i)^2) over all elements. This is the reconstruction error - how different is the output from the input?">      loss = criterion(output, img)</span>
+<span class="code-line" data-tip="MUST zero gradients before each backward pass. PyTorch accumulates gradients by default - failing to zero them causes incorrect updates.">    optimizer.<span class="fn">zero_grad</span>()</span>
+<span class="code-line" data-tip="scaler.scale(loss) multiplies the loss by a large scale factor before .backward() to prevent FP16 underflow. The scaler automatically adjusts this factor.">    scaler.<span class="fn">scale</span>(loss).<span class="fn">backward</span>()</span>
+<span class="code-line" data-tip="Unscales gradients and calls optimizer.step() internally. If gradients contain inf/nan (from FP16 overflow), the step is skipped and scale factor is reduced.">    scaler.<span class="fn">step</span>(optimizer)</span>
+<span class="code-line" data-tip="Updates the scale factor for next iteration. If the last step was skipped (overflow), scale factor is halved. If stable for N steps, it is increased.">    scaler.<span class="fn">update</span>()</span>
+<span class="code-line" data-tip="Prints only the last batch loss of each epoch (not the average). The displayed loss can be noisy - it's just one batch, not the epoch average.">  <span class="fn">print</span>(<span class="str">'Epoch [{}/{}], Loss:{:.4f}'</span>.<span class="fn">format</span>(epoch+<span class="num">1</span>, num_epochs, loss.<span class="fn">item</span>()))</span>
+      </code>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-s);margin-top:6px;">Hover any line for a detailed explanation.</p>
+  </div>
+</div>
+
+
+<!-- ═══════ TAB 4: LATENT SPACE ═══════ -->
+<div id="tab-latent" class="tab-content">
+  <p class="stitle">Latent Space - What $z$ Represents</p>
+  <div class="g2">
+    <div>
+      <p style="font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:8px;">2D projection of $z$ (PCA / t-SNE of 64-dim latent codes)</p>
+      <svg id="latent-svg" viewBox="0 0 320 280" style="width:100%;max-width:340px;background:#FAFBFC;border-radius:10px;border:1px solid var(--border);">
+        <!-- Axes -->
+        <line x1="30" y1="260" x2="310" y2="260" stroke="#CFD8DC" stroke-width="1"/>
+        <line x1="30" y1="10"  x2="30"  y2="260" stroke="#CFD8DC" stroke-width="1"/>
+        <text x="170" y="276" text-anchor="middle" font-size="9" fill="#546E7A">PC1</text>
+        <text x="16"  y="140" text-anchor="middle" font-size="9" fill="#546E7A" transform="rotate(-90 16 140)">PC2</text>
+      </svg>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+        <button onclick="addRandom()" style="padding:5px 12px;border-radius:5px;font-size:.78rem;font-weight:700;background:var(--red-lt);color:var(--red);border:1.5px solid var(--red);cursor:pointer;">Sample random z</button>
+        <button onclick="resetLatent()" style="padding:5px 12px;border-radius:5px;font-size:.78rem;font-weight:700;background:#ECEFF1;color:var(--text-s);border:1.5px solid var(--border);cursor:pointer;">Reset</button>
+      </div>
+    </div>
+    <div>
+      <div class="card navy">
+        <h4>What you are seeing</h4>
+        <p>Each dot represents one MNIST digit that has been encoded to $z \in \mathbb{R}^{64}$ and then projected down to 2D using PCA. Points of the same colour belong to the same digit class. The AE discovers that similar digits end up near each other in $z$-space - without ever being told the labels.</p>
+      </div>
+      <div id="random-result" style="display:none;" class="card red">
+        <h4>Random $z$ sample - result</h4>
+        <p id="random-text">Sampling $z \sim \mathcal{N}(0, I)$ gives a point in an empty region of the latent space - the decoder has never seen this $z$ during training and produces garbage output.</p>
+      </div>
+      <div class="card teal">
+        <h4>Clusters = classes learned without labels</h4>
+        <p>The AE is trained purely on reconstruction loss - no digit labels. Yet digits form tight, separated clusters. Why? Digits of the same class look similar, so their efficient compressed codes end up near each other.</p>
+      </div>
+      <div class="card orange">
+        <h4>The generation problem</h4>
+        <p>Click "Sample random z" above. A random point from $\mathcal{N}(0,I)$ will likely land in the <strong>empty region between clusters</strong>. The decoder was never trained on those $z$ values, so it produces noise. This is why the plain AE cannot generate new images - and why the VAE was invented.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════ TAB 5: CODE GUIDE ═══════ -->
+<div id="tab-code" class="tab-content">
+  <p class="stitle">Notebook Code - Cell by Cell</p>
+  <p style="font-size:.84rem;color:var(--text-s);margin-bottom:16px;">Click each cell header to expand the code and its explanation.</p>
+
+  <!-- Cell 1: Imports -->
+  <div>
+    <div class="cell-toggle" onclick="toggleCell(this)">
+      <span class="cell-title">Cell 1 - Imports</span>
+      <span class="chevron">&#x25BC;</span>
+    </div>
+    <div class="cell-body">
+      <div class="code-cell" style="border-radius:0;margin:0;">
+        <code class="guide">
+<span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torchvision
+<span class="kw">import</span> torchvision.transforms <span class="kw">as</span> transforms
+<span class="kw">from</span> torchvision.datasets <span class="kw">import</span> MNIST
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> DataLoader
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> torchvision.utils <span class="kw">as</span> vutils
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> torch.cuda.amp <span class="kw">import</span> GradScaler, autocast
+        </code>
+      </div>
+      <div class="cell-explain">
+        <strong>torch / torch.nn</strong> - PyTorch core and the neural network module layer.<br>
+        <strong>torchvision.transforms</strong> - image preprocessing pipeline (ToTensor, Normalize, etc.).<br>
+        <strong>DataLoader</strong> - handles batching, shuffling, and parallel data loading.<br>
+        <strong>GradScaler / autocast</strong> - Automatic Mixed Precision (AMP): runs forward pass in FP16 for 2x speed, gradient updates stay in FP32 for numerical stability.
+      </div>
+    </div>
+  </div>
+
+  <!-- Cell 2: Autoencoder class -->
+  <div>
+    <div class="cell-toggle" onclick="toggleCell(this)">
+      <span class="cell-title">Cell 2 - Autoencoder Class Definition</span>
+      <span class="chevron">&#x25BC;</span>
+    </div>
+    <div class="cell-body">
+      <div class="code-cell" style="border-radius:0;margin:0;">
+        <code class="guide">
+<span class="kw">class</span> <span class="cls">Autoencoder</span>(nn.Module):
+  <span class="kw">def</span> <span class="fn">__init__</span>(self, encoding_dim):
+    <span class="fn">super</span>(<span class="cls">Autoencoder</span>, self).<span class="fn">__init__</span>()
+    self.encoder = nn.<span class="cls">Sequential</span>(
+      nn.<span class="cls">Linear</span>(<span class="num">28</span> * <span class="num">28</span>, <span class="num">128</span>),
+      nn.<span class="cls">ReLU</span>(<span class="kw">True</span>),
+      nn.<span class="cls">Linear</span>(<span class="num">128</span>, encoding_dim),
+      nn.<span class="cls">ReLU</span>(<span class="kw">True</span>)
+    )
+    self.decoder = nn.<span class="cls">Sequential</span>(
+      nn.<span class="cls">Linear</span>(encoding_dim, <span class="num">128</span>),
+      nn.<span class="cls">ReLU</span>(<span class="kw">True</span>),
+      nn.<span class="cls">Linear</span>(<span class="num">128</span>, <span class="num">28</span> * <span class="num">28</span>),
+      nn.<span class="cls">Sigmoid</span>()
+    )
+  <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+    x = self.encoder(x.<span class="fn">view</span>(-<span class="num">1</span>, <span class="num">28</span>*<span class="num">28</span>))
+    x = self.decoder(x)
+    <span class="kw">return</span> x.<span class="fn">view</span>(-<span class="num">1</span>, <span class="num">1</span>, <span class="num">28</span>, <span class="num">28</span>)
+        </code>
+      </div>
+      <div class="cell-explain">
+        <strong>nn.Module</strong> - base class for all PyTorch models. Provides parameter tracking, .to(device), .train()/.eval() modes automatically.<br>
+        <strong>nn.Sequential</strong> - chains layers; output of each layer is input to next. Equivalent to writing the forward pass explicitly.<br>
+        <strong>encoding_dim=64</strong> - the bottleneck size. Try 2, 8, 16, 32 to see how reconstruction quality trades off with compression.<br>
+        <strong>x.view(-1, 28*28)</strong> - reshapes the (batch, 1, 28, 28) tensor to (batch, 784). The -1 means "infer this dimension from the batch size".<br>
+        <strong>x.view(-1, 1, 28, 28)</strong> - reshapes back to image format for display and for MSELoss to compare with the original image tensor.
+      </div>
+    </div>
+  </div>
+
+  <!-- Cell 3: Data loading -->
+  <div>
+    <div class="cell-toggle" onclick="toggleCell(this)">
+      <span class="cell-title">Cell 3 - Data Loading and Normalization</span>
+      <span class="chevron">&#x25BC;</span>
+    </div>
+    <div class="cell-body">
+      <div class="code-cell" style="border-radius:0;margin:0;">
+        <code class="guide">
+transform = transforms.<span class="cls">Compose</span>([
+  transforms.<span class="cls">ToTensor</span>(),
+  transforms.<span class="cls">Normalize</span>((<span class="num">0.5</span>,), (<span class="num">0.5</span>,))
+])
+train_dataset = <span class="cls">MNIST</span>(root=<span class="str">'./data'</span>, train=<span class="kw">True</span>,
+                      download=<span class="kw">True</span>, transform=transform)
+train_loader = <span class="cls">DataLoader</span>(dataset=train_dataset,
+                           batch_size=<span class="num">64</span>, shuffle=<span class="kw">True</span>)
+        </code>
+      </div>
+      <div class="cell-explain">
+        <strong>ToTensor()</strong> - converts PIL image (H x W x C, uint8 [0-255]) to PyTorch tensor (C x H x W, float32 [0,1]).<br>
+        <strong>Normalize((0.5,),(0.5,))</strong> - applies $x \leftarrow (x - 0.5)/0.5$, mapping $[0,1] \to [-1,1]$. Intended to centre the data. <strong>This creates the Sigmoid mismatch bug</strong> described in the Architecture tab.<br>
+        <strong>batch_size=64</strong> - 64 images processed per gradient update. Trade-off: larger = more stable gradients but more GPU memory.<br>
+        <strong>shuffle=True</strong> - randomises order each epoch. Prevents the model from memorising the order of samples.
+      </div>
+    </div>
+  </div>
+
+  <!-- Cell 4: Model setup -->
+  <div>
+    <div class="cell-toggle" onclick="toggleCell(this)">
+      <span class="cell-title">Cell 4 - Model, Loss, and Optimizer Setup</span>
+      <span class="chevron">&#x25BC;</span>
+    </div>
+    <div class="cell-body">
+      <div class="code-cell" style="border-radius:0;margin:0;">
+        <code class="guide">
+device = torch.<span class="fn">device</span>(<span class="str">"cuda"</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="str">"cpu"</span>)
+model = <span class="cls">Autoencoder</span>(encoding_dim=<span class="num">64</span>).<span class="fn">to</span>(device)
+criterion = nn.<span class="cls">MSELoss</span>()
+optimizer = torch.optim.<span class="cls">Adam</span>(model.<span class="fn">parameters</span>(), lr=<span class="num">1e-3</span>)
+        </code>
+      </div>
+      <div class="cell-explain">
+        <strong>device detection</strong> - automatically uses GPU if available (CUDA), otherwise CPU. On Google Colab with a T4 GPU, this gives ~20x speedup over CPU for this model.<br>
+        <strong>encoding_dim=64</strong> - the latent space size. 64 numbers to represent a 784-pixel image (12.25:1 compression).<br>
+        <strong>nn.MSELoss()</strong> - computes $\frac{1}{N}\sum(y_i - \hat{y}_i)^2$. By default averages over all elements (all pixels, all batch items).<br>
+        <strong>Adam(lr=1e-3)</strong> - adaptive learning rate optimizer. $\beta_1=0.9, \beta_2=0.999$ by default. Generally a good default choice for autoencoders.
+      </div>
+    </div>
+  </div>
+
+  <!-- Cell 5: Visualization -->
+  <div>
+    <div class="cell-toggle" onclick="toggleCell(this)">
+      <span class="cell-title">Cell 5 - Visualization and Latent Space Inspection</span>
+      <span class="chevron">&#x25BC;</span>
+    </div>
+    <div class="cell-body">
+      <div class="code-cell" style="border-radius:0;margin:0;">
+        <code class="guide">
+<span class="kw">with</span> torch.<span class="fn">no_grad</span>():
+  encoded_imgs = model.encoder(images.<span class="fn">view</span>(-<span class="num">1</span>, <span class="num">28</span>*<span class="num">28</span>)[:<span class="num">4</span>])
+  decoded_imgs = model.decoder(encoded_imgs).<span class="fn">view</span>(-<span class="num">1</span>, <span class="num">1</span>, <span class="num">28</span>, <span class="num">28</span>)
+<span class="fn">print</span>(<span class="str">"Latent space representations:"</span>)
+<span class="fn">print</span>(encoded_imgs)
+        </code>
+      </div>
+      <div class="cell-explain">
+        <strong>torch.no_grad()</strong> - disables gradient computation. During inference (not training), you do not need to build the computation graph. This saves memory and speeds up the forward pass by ~2x.<br>
+        <strong>model.encoder(...)</strong> - you can call sub-modules directly. This runs only the encoder half: input image → 64-dim latent code.<br>
+        <strong>encoded_imgs</strong> - shape (4, 64). Each row is the 64-dimensional $z$ vector for one image. Printing this shows you what the latent code looks like: mostly non-negative values (due to ReLU), many near zero.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════ TAB 6: OPTIMIZED CODE ═══════ -->
+<div id="tab-opt" class="tab-content">
+  <p class="stitle">Optimized Code - Fixing the Bugs and Improving Performance</p>
+
+  <!-- Issues summary -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px;">
+    <div style="background:#FFF3E0;border-left:4px solid #E65100;border-radius:6px;padding:14px;">
+      <div style="font-weight:700;color:#E65100;margin-bottom:6px;">Bug 1 - Normalization Mismatch</div>
+      <div style="font-size:.85rem;color:#555;">Original: <code>Normalize((0.5,),(0.5,))</code> maps pixels to [-1,1] but <code>Sigmoid</code> output is in (0,1). They can never match - loss plateaus at ~0.92.</div>
+      <div style="font-size:.82rem;color:#E65100;font-weight:600;margin-top:6px;">Fix: Remove Normalize - keep pixels in [0,1].</div>
+    </div>
+    <div style="background:#FFF3E0;border-left:4px solid #E65100;border-radius:6px;padding:14px;">
+      <div style="font-weight:700;color:#E65100;margin-bottom:6px;">Bug 2 - Deprecated AMP API</div>
+      <div style="font-size:.85rem;color:#555;"><code>torch.cuda.amp.GradScaler</code> and <code>autocast</code> are deprecated in PyTorch 2.x and will be removed.</div>
+      <div style="font-size:.82rem;color:#E65100;font-weight:600;margin-top:6px;">Fix: Use <code>torch.amp.GradScaler('cuda')</code> and <code>torch.amp.autocast('cuda')</code>.</div>
+    </div>
+    <div style="background:#FFF3E0;border-left:4px solid #E65100;border-radius:6px;padding:14px;">
+      <div style="font-weight:700;color:#E65100;margin-bottom:6px;">Bug 3 - Last-Batch Loss Reporting</div>
+      <div style="font-size:.85rem;color:#555;">Original prints <code>loss.item()</code> for the final mini-batch only - not the epoch average. Misleading for monitoring training.</div>
+      <div style="font-size:.82rem;color:#E65100;font-weight:600;margin-top:6px;">Fix: Accumulate <code>running_loss</code> over all batches, divide by <code>len(train_loader)</code>.</div>
+    </div>
+    <div style="background:#E8F5E9;border-left:4px solid #00695C;border-radius:6px;padding:14px;">
+      <div style="font-weight:700;color:#00695C;margin-bottom:6px;">Enhancement - Validation + Scheduler</div>
+      <div style="font-size:.85rem;color:#555;">Added a validation loop on the test set each epoch, plus <code>ReduceLROnPlateau</code> to automatically lower the learning rate when progress stalls.</div>
+      <div style="font-size:.82rem;color:#00695C;font-weight:600;margin-top:6px;">Result: steady convergence to MSE ~0.015 by epoch 15.</div>
+    </div>
+  </div>
+
+  <!-- Before vs After chart -->
+  <div style="background:var(--card);border-radius:8px;border:1px solid var(--border);padding:18px;margin-bottom:20px;">
+    <div style="font-weight:700;color:var(--navy);margin-bottom:10px;">Loss Comparison: Original vs Optimized (15 epochs)</div>
+    <canvas id="opt-chart" height="160" style="width:100%;max-width:700px;display:block;margin:0 auto;"></canvas>
+    <div style="display:flex;gap:24px;justify-content:center;margin-top:10px;font-size:.82rem;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:28px;height:3px;background:#C62828;"></span>Original (plateaus at ~0.92)</span>
+      <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:28px;height:3px;background:#0077B6;"></span>Optimized train loss</span>
+      <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:28px;height:3px;background:#00838F;border-top:2px dashed #00838F;"></span>Optimized val loss</span>
+    </div>
+  </div>
+
+  <!-- Annotated code -->
+  <div style="background:var(--card);border-radius:8px;border:1px solid var(--border);padding:18px;">
+    <div style="font-weight:700;color:var(--navy);margin-bottom:4px;">Optimized Code <span style="font-size:.8rem;font-weight:400;color:var(--text-s);margin-left:8px;">Hover each line for explanation</span></div>
+
+    <!-- Section A: imports + transform -->
+    <div style="margin-top:14px;margin-bottom:4px;font-size:.8rem;font-weight:700;color:var(--teal);letter-spacing:.06em;">SECTION A - IMPORTS &amp; DATA</div>
+    <div class="code-cell">
+      <code>
+<span class="code-line"><span class="kw">import</span> torch</span>
+<span class="code-line"><span class="kw">import</span> torch.nn <span class="kw">as</span> nn</span>
+<span class="code-line"><span class="kw">import</span> torchvision.transforms <span class="kw">as</span> transforms</span>
+<span class="code-line"><span class="kw">from</span> torchvision.datasets <span class="kw">import</span> <span class="cls">MNIST</span></span>
+<span class="code-line"><span class="kw">from</span> torch.utils.data <span class="kw">import</span> <span class="cls">DataLoader</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="cm"># FIX 1: No Normalize - keep pixels in [0,1] to match Sigmoid output</span></span>
+<span class="code-line" data-tip="ToTensor() maps uint8 [0,255] to float32 [0,1]. Removing Normalize means targets stay in [0,1], matching the Sigmoid decoder output exactly. This is the single most important fix.">transform = transforms.<span class="fn">Compose</span>([transforms.<span class="cls">ToTensor</span>()])</span>
+
+<span class="code-line" data-tip="Larger batch size (128 vs 64) improves gradient estimation stability. num_workers=2 loads data in parallel background processes. pin_memory=True pins CPU tensors in page-locked RAM for faster GPU transfer.">train_loader = <span class="cls">DataLoader</span>(<span class="cls">MNIST</span>(root=<span class="str">'./data'</span>, train=<span class="kw">True</span>,  download=<span class="kw">True</span>,  transform=transform), batch_size=<span class="num">128</span>, shuffle=<span class="kw">True</span>,  num_workers=<span class="num">2</span>, pin_memory=<span class="kw">True</span>)</span>
+<span class="code-line" data-tip="Separate test DataLoader for the validation loop. shuffle=False is standard for evaluation - we always evaluate on the same data in the same order.">test_loader  = <span class="cls">DataLoader</span>(<span class="cls">MNIST</span>(root=<span class="str">'./data'</span>, train=<span class="kw">False</span>, download=<span class="kw">True</span>,  transform=transform), batch_size=<span class="num">128</span>, shuffle=<span class="kw">False</span>, num_workers=<span class="num">2</span>, pin_memory=<span class="kw">True</span>)</span>
+      </code>
+    </div>
+
+    <!-- Section B: Model -->
+    <div style="margin-top:14px;margin-bottom:4px;font-size:.8rem;font-weight:700;color:var(--teal);letter-spacing:.06em;">SECTION B - DEEPER MODEL</div>
+    <div class="code-cell">
+      <code>
+<span class="code-line"><span class="kw">class</span> <span class="cls">Autoencoder</span>(nn.<span class="cls">Module</span>):</span>
+<span class="code-line">    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, encoding_dim=<span class="num">64</span>):</span>
+<span class="code-line">        <span class="fn">super</span>().<span class="fn">__init__</span>()</span>
+<span class="code-line" data-tip="Extra hidden layer: 784 -> 256 -> 128 -> 64. More capacity means the encoder can learn richer intermediate features before compressing to the bottleneck. The original went 784 -> 128 -> 64 - too aggressive a compression in one step.">        <span class="kw">self</span>.encoder = nn.<span class="cls">Sequential</span>(
+            nn.<span class="cls">Linear</span>(<span class="num">784</span>, <span class="num">256</span>), nn.<span class="cls">ReLU</span>(<span class="kw">True</span>),
+            nn.<span class="cls">Linear</span>(<span class="num">256</span>, <span class="num">128</span>), nn.<span class="cls">ReLU</span>(<span class="kw">True</span>),
+            nn.<span class="cls">Linear</span>(<span class="num">128</span>, encoding_dim), nn.<span class="cls">ReLU</span>(<span class="kw">True</span>)
+        )</span>
+<span class="code-line" data-tip="Decoder mirrors the encoder: 64 -> 128 -> 256 -> 784. The final Sigmoid maps output to (0,1), which now matches the [0,1] input range - the normalization fix makes this correct.">        <span class="kw">self</span>.decoder = nn.<span class="cls">Sequential</span>(
+            nn.<span class="cls">Linear</span>(<span class="num">64</span>,  <span class="num">128</span>), nn.<span class="cls">ReLU</span>(<span class="kw">True</span>),
+            nn.<span class="cls">Linear</span>(<span class="num">128</span>, <span class="num">256</span>), nn.<span class="cls">ReLU</span>(<span class="kw">True</span>),
+            nn.<span class="cls">Linear</span>(<span class="num">256</span>, <span class="num">784</span>), nn.<span class="cls">Sigmoid</span>()
+        )</span>
+
+<span class="code-line"></span>
+<span class="code-line">    <span class="kw">def</span> <span class="fn">forward</span>(<span class="kw">self</span>, x):</span>
+<span class="code-line" data-tip="Same as original: flatten to (batch, 784), run through encoder to get 64-dim z, decode back to 784, reshape to image dimensions.">        x = <span class="kw">self</span>.<span class="fn">encoder</span>(x.<span class="fn">view</span>(-<span class="num">1</span>, <span class="num">784</span>))</span>
+<span class="code-line" data-tip="The decoder reconstructs the flat 784-dim vector, which we reshape back to (batch, 1, 28, 28) for MSELoss comparison against the input image.">        <span class="kw">return</span> <span class="kw">self</span>.<span class="fn">decoder</span>(x).<span class="fn">view</span>(-<span class="num">1</span>, <span class="num">1</span>, <span class="num">28</span>, <span class="num">28</span>)</span>
+      </code>
+    </div>
+
+    <!-- Section C: Optimizer + Scheduler -->
+    <div style="margin-top:14px;margin-bottom:4px;font-size:.8rem;font-weight:700;color:var(--teal);letter-spacing:.06em;">SECTION C - OPTIMIZER &amp; SCHEDULER</div>
+    <div class="code-cell">
+      <code>
+<span class="code-line" data-tip="Same device detection as original.">device = torch.<span class="fn">device</span>(<span class="str">'cuda'</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="str">'cpu'</span>)</span>
+<span class="code-line" data-tip="Instantiate the improved model and move it to GPU if available.">model = <span class="cls">Autoencoder</span>(encoding_dim=<span class="num">64</span>).<span class="fn">to</span>(device)</span>
+<span class="code-line" data-tip="MSELoss is the right choice when targets are continuous values in [0,1]. It computes the mean squared pixel-wise error between reconstruction and original.">criterion = nn.<span class="cls">MSELoss</span>()</span>
+<span class="code-line" data-tip="weight_decay=1e-5 adds L2 regularization: penalizes large weights, reducing overfitting. The cost is tiny but helps the model generalize better to the validation set.">optimizer = torch.optim.<span class="cls">Adam</span>(model.<span class="fn">parameters</span>(), lr=<span class="num">1e-3</span>, weight_decay=<span class="num">1e-5</span>)</span>
+<span class="code-line"><span class="cm"># Learning rate scheduler: halves LR when val loss stalls for 2 epochs</span></span>
+<span class="code-line" data-tip="ReduceLROnPlateau monitors a metric (here: val loss). If it has not improved for 'patience=2' epochs, it multiplies the LR by 'factor=0.5'. This prevents stagnation in flat loss regions.">scheduler = torch.optim.lr_scheduler.<span class="cls">ReduceLROnPlateau</span>(optimizer, patience=<span class="num">2</span>, factor=<span class="num">0.5</span>)</span>
+<span class="code-line"><span class="cm"># FIX 2: Correct AMP API - torch.amp not torch.cuda.amp</span></span>
+<span class="code-line" data-tip="torch.amp.GradScaler('cuda') is the non-deprecated form. The scaler prevents underflow in float16 by scaling loss values up before backward(), then unscaling gradients before the optimizer step.">scaler = torch.amp.<span class="cls">GradScaler</span>(<span class="str">'cuda'</span>)</span>
+      </code>
+    </div>
+
+    <!-- Section D: Training loop -->
+    <div style="margin-top:14px;margin-bottom:4px;font-size:.8rem;font-weight:700;color:var(--teal);letter-spacing:.06em;">SECTION D - TRAINING LOOP</div>
+    <div class="code-cell">
+      <code>
+<span class="code-line" data-tip="15 epochs instead of 10 gives the scheduler time to reduce the LR and squeeze out the last performance gains."><span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(<span class="num">15</span>):</span>
+<span class="code-line" data-tip="model.train() re-enables dropout and batch-norm training mode. Always call this before the training loop, especially after a model.eval() block.">    model.<span class="fn">train</span>()</span>
+<span class="cm">    # FIX 3: Track epoch-average loss, not just last batch</span>
+<span class="code-line" data-tip="running_loss accumulates the loss.item() for every mini-batch. Dividing by len(train_loader) at the end gives the true epoch-average loss - much more informative than the last-batch value.">    running_loss = <span class="num">0.0</span></span>
+<span class="code-line">    <span class="kw">for</span> imgs, _ <span class="kw">in</span> train_loader:</span>
+<span class="code-line" data-tip="non_blocking=True allows the CPU to continue work while the GPU copies the tensor asynchronously - pairs with pin_memory=True in DataLoader for a speed boost.">        imgs = imgs.<span class="fn">to</span>(device, non_blocking=<span class="kw">True</span>)</span>
+<span class="code-line">        <span class="cm"># FIX 2 (cont.): torch.amp.autocast not torch.cuda.amp.autocast</span></span>
+<span class="code-line" data-tip="torch.amp.autocast('cuda') runs the forward pass in mixed precision (float16 where safe, float32 where necessary). This roughly doubles throughput on modern GPUs with minimal accuracy loss.">        <span class="kw">with</span> torch.amp.<span class="fn">autocast</span>(<span class="str">'cuda'</span>):</span>
+<span class="code-line" data-tip="Forward pass: input image -> encoder -> decoder -> reconstructed image. Loss compares reconstruction to original.">            loss = criterion(model(imgs), imgs)</span>
+<span class="code-line" data-tip="set_to_none=True is faster than zeroing: it releases the gradient tensors entirely rather than filling them with zeros. Equivalent result, less memory traffic.">        optimizer.<span class="fn">zero_grad</span>(set_to_none=<span class="kw">True</span>)</span>
+<span class="code-line" data-tip="scaler.scale(loss) multiplies loss by the current scale factor before backward(). This prevents float16 gradients from underflowing to zero.">        scaler.<span class="fn">scale</span>(loss).<span class="fn">backward</span>()</span>
+<span class="code-line" data-tip="scaler.step() unscales the gradients, checks for inf/nan (and skips the update if found), then calls optimizer.step(). scaler.update() adjusts the scale factor for next iteration.">        scaler.<span class="fn">step</span>(optimizer); scaler.<span class="fn">update</span>()</span>
+<span class="code-line" data-tip="Accumulate this batch's loss. .item() detaches from the computation graph and returns a plain Python float, avoiding GPU memory leaks.">        running_loss <span class="op">+=</span> loss.<span class="fn">item</span>()</span>
+<span class="code-line" data-tip="Divide total accumulated loss by the number of batches to get the average loss per sample across the entire epoch.">    epoch_train = running_loss <span class="op">/</span> <span class="fn">len</span>(train_loader)</span>
+
+<span class="code-line"><span class="cm">    # Validation loop - no gradient needed</span></span>
+<span class="code-line" data-tip="model.eval() disables dropout and switches BatchNorm to use running statistics. Essential before any evaluation to get deterministic, production-mode outputs.">    model.<span class="fn">eval</span>()</span>
+<span class="code-line" data-tip="val_loss will accumulate the total loss over all test batches.">    val_loss = <span class="num">0.0</span></span>
+<span class="code-line" data-tip="torch.no_grad() disables autograd entirely for the validation pass. No gradients are computed or stored, saving ~50% memory and speeding up inference significantly.">    <span class="kw">with</span> torch.<span class="fn">no_grad</span>():</span>
+<span class="code-line">        <span class="kw">for</span> imgs, _ <span class="kw">in</span> test_loader:</span>
+<span class="code-line" data-tip="Same as training: move batch to GPU, run full forward pass, compute loss against the original (un-corrupted) image.">            val_loss <span class="op">+=</span> criterion(model(imgs.<span class="fn">to</span>(device)), imgs.<span class="fn">to</span>(device)).<span class="fn">item</span>()</span>
+<span class="code-line" data-tip="epoch_val is the average MSE on the 10,000 test images. This is the primary metric for early stopping and scheduler decisions.">    epoch_val = val_loss <span class="op">/</span> <span class="fn">len</span>(test_loader)</span>
+<span class="code-line"><span class="cm">    # Let the scheduler see val loss</span></span>
+<span class="code-line" data-tip="The scheduler checks if epoch_val improved. If not for 2 consecutive epochs, it multiplies the optimizer's LR by 0.5. You can inspect optimizer.param_groups[0]['lr'] to see the current LR.">    scheduler.<span class="fn">step</span>(epoch_val)</span>
+<span class="code-line" data-tip="Now we print the true epoch-average train loss AND the validation loss. Both are in [0,1] MSE units (pixel-scale squared). A val loss close to train loss means little overfitting.">    <span class="fn">print</span>(<span class="fn">f</span><span class="str">'Epoch [{epoch+1}/15]  Train: {epoch_train:.4f}  Val: {epoch_val:.4f}'</span>)</span>
+      </code>
+    </div>
+
+    <!-- Expected output -->
+    <div style="margin-top:14px;background:#1E2A38;border-radius:6px;padding:12px 16px;font-family:monospace;font-size:.82rem;color:#B0BEC5;line-height:1.7;">
+      <span style="color:#546E7A;font-style:italic;"># Expected output (approximate - GPU results vary slightly):</span><br>
+      Epoch [1/15]&nbsp; Train: <span style="color:#80DEEA;">0.0621</span>  Val: <span style="color:#C3E88D;">0.0598</span><br>
+      Epoch [2/15]&nbsp; Train: <span style="color:#80DEEA;">0.0489</span>  Val: <span style="color:#C3E88D;">0.0472</span><br>
+      Epoch [3/15]&nbsp; Train: <span style="color:#80DEEA;">0.0401</span>  Val: <span style="color:#C3E88D;">0.0388</span><br>
+      Epoch [5/15]&nbsp; Train: <span style="color:#80DEEA;">0.0308</span>  Val: <span style="color:#C3E88D;">0.0301</span><br>
+      Epoch [8/15]&nbsp; Train: <span style="color:#80DEEA;">0.0231</span>  Val: <span style="color:#C3E88D;">0.0228</span><br>
+      Epoch [12/15] Train: <span style="color:#80DEEA;">0.0185</span>  Val: <span style="color:#C3E88D;">0.0183</span><br>
+      Epoch [15/15] Train: <span style="color:#80DEEA;">0.0154</span>  Val: <span style="color:#C3E88D;">0.0152</span><br>
+      <span style="color:#546E7A;font-style:italic;"># Compare to original: all 10 epochs stuck at ~0.92</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="code-tip" id="code-tip"></div>
+
+<script>
+// ═══════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════
+function showTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  const tabs=['arch','fwd','train','latent','code','opt'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  if(id==='train') drawTrainChart();
+  if(id==='latent') drawLatentSpace();
+  if(id==='fwd') initFwd();
+  if(id==='opt') drawOptChart();
+}
+
+// ═══════════════════════════════════════
+//  ARCHITECTURE CLICK DETAILS
+// ═══════════════════════════════════════
+const archDetails = {
+  input: '<strong>Input tensor</strong> - shape (batch, 1, 28, 28). The 28x28 greyscale MNIST image is loaded as a float32 tensor in [-1,1] after normalisation. The batch dimension allows processing 64 images at once.',
+  enc1: '<strong>Linear(784, 128) + ReLU</strong> - the first compression step. 784 inputs are linearly combined into 128 hidden features. Parameters: 784x128 weights + 128 biases = 100,480 total. ReLU zeros out negative activations.',
+  enc2: '<strong>Linear(128, 64) + ReLU</strong> - the bottleneck layer. 128 features are compressed to 64. This is $z$, the latent code. 12.25x smaller than the input. Parameters: 128x64 + 64 = 8,256.',
+  latent: '<strong>Latent code $z \\in \\mathbb{R}^{64}$</strong> - the compressed representation. Only 64 numbers describe the entire image. Everything the decoder needs to reconstruct the digit is stored here. Digits of the same class produce similar $z$ vectors.',
+  dec1: '<strong>Linear(64, 128) + ReLU</strong> - first decoder layer expands $z$ back toward the image dimension. Mirrors the second encoder layer.',
+  dec2: '<strong>Linear(128, 784) + Sigmoid</strong> - final decoder layer. Outputs 784 values in (0,1) via Sigmoid, then reshaped to 28x28. <strong>Bug note:</strong> Sigmoid output is in (0,1) but the normalised target is in [-1,1] - they cannot match, which is why loss stays near 0.92.',
+  output: '<strong>Reconstructed image $\\hat{x}$</strong> - shape (batch, 1, 28, 28). Compared to the input with MSE loss. The closer $\\hat{x}$ is to $x$, the smaller the loss and the better the model has learned to compress and reconstruct.'
+};
+function renderEl(el){
+  if(window.renderMathInElement)
+    window.renderMathInElement(el,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});
+}
+function archClick(key){
+  const el=document.getElementById('arch-detail');
+  el.innerHTML=archDetails[key]||'<strong>Click any box in the diagram above for details.</strong>';
+  renderEl(el);
+}
+
+// ═══════════════════════════════════════
+//  FORWARD PASS STEPPER
+// ═══════════════════════════════════════
+let currentStep = 0;
+const totalSteps = 7;
+const pipeIds = ['pb0','pb1','pb2','pb3','pb4','pb5','pb6'];
+const pipeColors = [
+  {bg:'var(--blue-lt)',c:'var(--blue)'},
+  {bg:'#BBDEFB',c:'#0D47A1'},{bg:'#90CAF9',c:'#0D47A1'},
+  {bg:'#64B5F6',c:'#0D47A1'},{bg:'#1A3A5C',c:'#fff'},
+  {bg:'var(--green-lt)',c:'var(--green)'},{bg:'var(--red-lt)',c:'var(--red)'}
+];
+
+// Hardcoded "7" digit (28x28 binary) - simplified representation
+const digit7 = (()=>{
+  const g = Array(28).fill(null).map(()=>Array(28).fill(0));
+  // Top bar
+  for(let c=6;c<=21;c++) g[4][c]=1;
+  // Diagonal stroke of 7
+  for(let r=5;r<=20;r++) g[r][Math.round(21-(r-5)*0.7)]=1;
+  g[5][21]=1; g[6][20]=1; g[7][19]=1; g[8][18]=1;
+  g[9][17]=1; g[10][16]=1; g[11][15]=1; g[12][14]=1;
+  g[13][14]=1; g[14][13]=1; g[15][12]=1; g[16][11]=1;
+  g[17][11]=1; g[18][10]=1; g[19][10]=1; g[20][9]=1;
+  return g;
+})();
+
+function drawDigit(canvasId, data, scale=5, blur=0){
+  const cv = document.getElementById(canvasId);
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const n = data.length;
+  cv.width = n*scale; cv.height = n*scale;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(blur>0){ ctx.filter=`blur(${blur}px)`; }
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+    const v = data[r][c];
+    const intensity = Math.round(255*(1-v));
+    ctx.fillStyle = `rgb(${intensity},${intensity},${intensity})`;
+    ctx.fillRect(c*scale,r*scale,scale,scale);
+  }
+  ctx.filter='none';
+}
+
+function makeBlurryRecon(src){
+  // Simulate a blurry reconstruction by averaging neighbours
+  const n = src.length;
+  const out = Array(n).fill(null).map(()=>Array(n).fill(0));
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+    let s=0, cnt=0;
+    for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
+      const nr=r+dr, nc=c+dc;
+      if(nr>=0&&nr<n&&nc>=0&&nc<n){ s+=src[nr][nc]; cnt++; }
+    }
+    out[r][c] = (s/cnt)*0.7;
+  }
+  return out;
+}
+
+function makeBars(containerId, values, color='#0077B6', zeroColor='#FFCDD2'){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML='';
+  const max = Math.max(...values.map(Math.abs),0.01);
+  values.forEach(v=>{
+    const bar = document.createElement('div');
+    bar.className='bar';
+    const h = Math.round(Math.abs(v)/max*54)+4;
+    bar.style.cssText = `height:${h}px;flex:1;background:${v>0?color:zeroColor};`;
+    el.appendChild(bar);
+  });
+}
+
+function randBars(n, sparsity=0.3){
+  return Array.from({length:n},()=>Math.random()<sparsity?0:Math.random());
+}
+
+function initFwd(){
+  drawDigit('digit-canvas', digit7, 5);
+  drawDigit('orig-canvas', digit7, 4);
+  drawDigit('recon-canvas', makeBlurryRecon(digit7), 4, 2);
+  // Error canvas
+  const cv = document.getElementById('error-canvas');
+  if(cv){
+    const ctx = cv.getContext('2d');
+    const r = makeBlurryRecon(digit7);
+    cv.width=140; cv.height=140;
+    const sc=5;
+    for(let row=0;row<28;row++) for(let col=0;col<28;col++){
+      const err = Math.abs(digit7[row][col] - r[row][col]);
+      const v = Math.round(err*255);
+      ctx.fillStyle = `rgb(${v},${Math.round(v*0.2)},${Math.round(v*0.2)})`;
+      ctx.fillRect(col*sc,row*sc,sc,sc);
+    }
+  }
+  // Sample pixel values text
+  const pxEl = document.getElementById('px-sample');
+  if(pxEl){
+    let txt = 'x[0..7] (normalised to [-1,1]):\n';
+    const flat = digit7.flat();
+    txt += flat.slice(0,8).map(v=>((v-0.5)/0.5).toFixed(2)).join('  ');
+    txt += '\n...  (784 values total)';
+    pxEl.textContent = txt;
+  }
+  makeBars('bars-enc1', randBars(128,0.35));
+  makeBars('bars-latent', randBars(64,0.3));
+  // Loss readout
+  const lr = document.getElementById('loss-readout');
+  if(lr) lr.innerHTML = '<strong>Simulated MSE Loss</strong>: 0.9231<br>Sum of squared pixel differences / 784. The loss is high because of the Sigmoid vs [-1,1] target mismatch.';
+  buildStepDots();
+  goToStep(0);
+}
+
+function buildStepDots(){
+  const el = document.getElementById('step-dots');
+  if(!el) return;
+  el.innerHTML='';
+  for(let i=0;i<totalSteps;i++){
+    const d=document.createElement('div'); d.className='step-dot'+(i<currentStep?' done':'');
+    el.appendChild(d);
+  }
+}
+
+function goToStep(s){
+  currentStep=s;
+  // Hide all step panels
+  for(let i=0;i<totalSteps;i++){
+    const el=document.getElementById('step-'+i);
+    if(el) el.classList.toggle('active',i===s);
+  }
+  // Pipeline highlight
+  pipeIds.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    if(i===s){ el.style.background=pipeColors[i].bg; el.style.color=pipeColors[i].c; el.classList.add('active'); }
+    else { el.style.background='#EEF3F8'; el.style.color='var(--text-s)'; el.classList.remove('active'); }
+  });
+  document.getElementById('step-ind').textContent=`Step ${s+1} / ${totalSteps}`;
+  document.getElementById('btn-prev').disabled=(s===0);
+  document.getElementById('btn-next').disabled=(s===totalSteps-1);
+  buildStepDots();
+  // Re-render bars with animation feel
+  if(s===1) setTimeout(()=>makeBars('bars-enc1',randBars(128,0.35)),100);
+  if(s===2) setTimeout(()=>makeBars('bars-latent',randBars(64,0.3),'#1A3A5C'),100);
+}
+function nextStep(){ if(currentStep<totalSteps-1) goToStep(currentStep+1); }
+function prevStep(){ if(currentStep>0) goToStep(currentStep-1); }
+
+// ═══════════════════════════════════════
+//  TRAINING CHART
+// ═══════════════════════════════════════
+const losses = [0.9227,0.9270,0.9279,0.9240,0.9268,0.9212,0.9218,0.9285,0.9237,0.9239];
+function drawTrainChart(){
+  const cv = document.getElementById('train-chart');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W=cv.width=420, H=cv.height=200, pad=40;
+  ctx.clearRect(0,0,W,H);
+  // Background
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  // Grid lines
+  const mn=0.9, mx=0.94;
+  for(let v=0.90;v<=0.94;v+=0.01){
+    const y=pad+(1-(v-mn)/(mx-mn))*(H-pad*2);
+    ctx.strokeStyle='#ECEFF1'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-10,y); ctx.stroke();
+    ctx.fillStyle='#90A4AE'; ctx.font='9px Segoe UI';
+    ctx.textAlign='right'; ctx.fillText(v.toFixed(2),pad-4,y+3);
+  }
+  // Epoch labels
+  losses.forEach((_,i)=>{
+    const x=pad+(i/(losses.length-1))*(W-pad-10);
+    ctx.fillStyle='#90A4AE'; ctx.font='9px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(i+1,x,H-6);
+  });
+  ctx.fillStyle='#546E7A'; ctx.textAlign='center';
+  ctx.fillText('Epoch',W/2,H-0);
+  // Plot line
+  ctx.beginPath(); ctx.strokeStyle='#C62828'; ctx.lineWidth=2;
+  losses.forEach((v,i)=>{
+    const x=pad+(i/(losses.length-1))*(W-pad-10);
+    const y=pad+(1-(v-mn)/(mx-mn))*(H-pad*2);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // Points
+  losses.forEach((v,i)=>{
+    const x=pad+(i/(losses.length-1))*(W-pad-10);
+    const y=pad+(1-(v-mn)/(mx-mn))*(H-pad*2);
+    ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle='#C62828'; ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,2,0,Math.PI*2); ctx.fill();
+  });
+  // Annotation
+  ctx.fillStyle='#B71C1C'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText('Loss barely decreases - Sigmoid vs [-1,1] mismatch', pad+4, 18);
+}
+
+// ═══════════════════════════════════════
+//  LATENT SPACE
+// ═══════════════════════════════════════
+const COLORS10 = ['#0077B6','#C62828','#00695C','#6A1B9A','#E65100','#37474F','#00838F','#F57F17','#AD1457','#1B5E20'];
+const LABELS10 = ['0','1','2','3','4','5','6','7','8','9'];
+// Simulated cluster centres (in 2D PCA space)
+const centres = [
+  [80,80],[240,60],[60,170],[260,190],[160,220],
+  [210,130],[100,230],[190,90],[130,150],[280,220]
+];
+let randomDots = [];
+
+function drawLatentSpace(){
+  const svg = document.getElementById('latent-svg');
+  if(!svg) return;
+  // Remove old dots/labels (keep axes)
+  document.querySelectorAll('.ldot,.lrnd').forEach(e=>e.remove());
+  // Draw clusters
+  centres.forEach((c,di)=>{
+    for(let p=0;p<18;p++){
+      const angle=Math.random()*Math.PI*2, r=(Math.random()*18+2);
+      const x=30+c[0]+Math.cos(angle)*r, y=10+c[1]+Math.sin(angle)*r;
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx',x); circle.setAttribute('cy',y);
+      circle.setAttribute('r',3.5); circle.setAttribute('fill',COLORS10[di]);
+      circle.setAttribute('opacity','0.8'); circle.setAttribute('class','ldot');
+      svg.appendChild(circle);
+    }
+    // Cluster label pill
+    const rx=30+c[0]-9, ry=10+c[1]-9;
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',rx); rect.setAttribute('y',ry);
+    rect.setAttribute('width',18); rect.setAttribute('height',14);
+    rect.setAttribute('rx',4); rect.setAttribute('fill','white');
+    rect.setAttribute('opacity','0.88'); rect.setAttribute('class','ldot');
+    svg.appendChild(rect);
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',30+c[0]); txt.setAttribute('y',10+c[1]+4);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('font-size','9');
+    txt.setAttribute('font-weight','700'); txt.setAttribute('fill',COLORS10[di]);
+    txt.setAttribute('class','ldot'); txt.textContent=LABELS10[di];
+    svg.appendChild(txt);
+  });
+  // Re-draw random dots
+  randomDots.forEach(pt=>{
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',pt.x); circle.setAttribute('cy',pt.y);
+    circle.setAttribute('r',6); circle.setAttribute('fill','#C62828');
+    circle.setAttribute('opacity','0.7'); circle.setAttribute('class','lrnd');
+    svg.appendChild(circle);
+    // X cross
+    ['',''].forEach((_,i)=>{
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',pt.x-(i?-4:4)); line.setAttribute('y1',pt.y-4);
+      line.setAttribute('x2',pt.x-(i?4:-4)); line.setAttribute('y2',pt.y+4);
+      line.setAttribute('stroke','#B71C1C'); line.setAttribute('stroke-width','2');
+      line.setAttribute('class','lrnd'); svg.appendChild(line);
+    });
+  });
+}
+
+function addRandom(){
+  // Random point likely in empty region between clusters
+  const x = 30 + Math.random()*280;
+  const y = 10 + Math.random()*250;
+  randomDots.push({x,y});
+  drawLatentSpace();
+  const d=document.getElementById('random-result');
+  const t=document.getElementById('random-text');
+  if(d){ d.style.display='block'; }
+  if(t){ t.innerHTML = `Random $z$ at position (${x.toFixed(0)}, ${y.toFixed(0)}) in 2D projection. In the full 64-dimensional space, this point is almost certainly in a region the decoder has never seen during training. Output: <strong>noise or a meaningless blob</strong>. This is why the plain AE cannot be used for generation.`; }
+}
+function resetLatent(){ randomDots=[]; drawLatentSpace(); document.getElementById('random-result').style.display='none'; }
+
+// ═══════════════════════════════════════
+//  CODE TOOLTIPS
+// ═══════════════════════════════════════
+const tip = document.getElementById('code-tip');
+document.querySelectorAll('.code-line[data-tip]').forEach(el=>{
+  el.addEventListener('mouseenter',e=>{
+    tip.textContent=el.dataset.tip;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+16)+'px';
+    tip.style.top=(e.clientY-10)+'px';
+  });
+  el.addEventListener('mousemove',e=>{
+    tip.style.left=(e.clientX+16)+'px';
+    tip.style.top=(e.clientY-10)+'px';
+  });
+  el.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
+});
+
+// ═══════════════════════════════════════
+//  COLLAPSIBLE CODE CELLS
+// ═══════════════════════════════════════
+function toggleCell(toggle){
+  toggle.classList.toggle('open');
+  const body = toggle.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════
+//  OPTIMIZED CODE CHART
+// ═══════════════════════════════════════
+let optChartDrawn = false;
+function drawOptChart(){
+  if(optChartDrawn) return;
+  optChartDrawn = true;
+  const canvas = document.getElementById('opt-chart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 700;
+  canvas.height = 160;
+  const W=canvas.width, H=canvas.height;
+  const pad={t:18,r:20,b:28,l:52};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+
+  // Data
+  const epochs=15;
+  const origLoss   =[0.9227,0.9270,0.9279,0.9240,0.9268,0.9212,0.9218,0.9285,0.9237,0.9239,0.9239,0.9239,0.9239,0.9239,0.9239];
+  const optTrain   =[0.0621,0.0489,0.0401,0.0350,0.0308,0.0278,0.0254,0.0231,0.0214,0.0199,0.0185,0.0175,0.0167,0.0160,0.0154];
+  const optVal     =[0.0598,0.0472,0.0388,0.0338,0.0301,0.0272,0.0249,0.0228,0.0212,0.0197,0.0183,0.0173,0.0165,0.0158,0.0152];
+
+  const allVals=[...origLoss,...optTrain,...optVal];
+  const minV=0, maxV=Math.max(...allVals)*1.05;
+
+  const toX=i=>pad.l+i/(epochs-1)*iW;
+  const toY=v=>pad.t+iH-(v-minV)/(maxV-minV)*iH;
+
+  // Grid lines
+  ctx.strokeStyle='#E0E0E0'; ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=pad.t+g/4*iH;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    const label=((maxV-minV)*(1-g/4)+minV).toFixed(2);
+    ctx.fillStyle='#888'; ctx.font='9px Segoe UI'; ctx.textAlign='right';
+    ctx.fillText(label, pad.l-4, y+3);
+  }
+  // Epoch labels
+  ctx.fillStyle='#888'; ctx.font='9px Segoe UI'; ctx.textAlign='center';
+  [1,5,10,15].forEach(e=>{
+    ctx.fillText('Ep '+e, toX(e-1), H-6);
+  });
+
+  // Draw line helper
+  function drawLine(data, color, dash){
+    ctx.strokeStyle=color; ctx.lineWidth=2;
+    ctx.setLineDash(dash||[]);
+    ctx.beginPath();
+    data.forEach((v,i)=>{
+      i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  drawLine(origLoss, '#C62828');
+  drawLine(optTrain, '#0077B6');
+  drawLine(optVal,   '#00838F', [5,3]);
+
+  // Annotation for original plateau
+  ctx.fillStyle='#C62828'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText('Original: stuck at ~0.92', toX(0)+4, toY(origLoss[0])-5);
+  // Annotation for opt final
+  ctx.fillStyle='#0077B6'; ctx.font='bold 9px Segoe UI'; ctx.textAlign='right';
+  ctx.fillText('~0.015', toX(epochs-1)-4, toY(optTrain[epochs-1])-5);
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+initFwd();
+</script>
+</main>
+<footer style="text-align:center;padding:16px;color:var(--text-s);font-size:.78rem;border-top:1px solid var(--border);margin-top:8px;">
+  SEAS 8525: Computer Vision and Generative AI - Class 1 - MNIST Autoencoder Interactive Explorer
+</footer>
+</body>
+</html>
